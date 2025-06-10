@@ -53,7 +53,6 @@ def read_and_log(samples=10, delay=0.1):
             except Exception as e:
                 print(f"Channel {chan_num} read error: {e}")
                 continue
-            time.sleep(delay)
 
         if not readings:
             print(f"Channel {chan_num} failed to collect valid samples.")
