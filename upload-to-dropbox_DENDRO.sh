@@ -2,9 +2,9 @@
 
 # --- Upload dendrometer data ---
 # Directories
-LOG_DIR=~/dendro_logger
-BACKUP_DIR=~/dendro_logger/DD_backup
-DROPBOX_UPLOADER=~/Dropbox-Uploader/dropbox_uploader.sh
+LOG_DIR=~/dendro-pi-main/dendro_logger
+BACKUP_DIR=~/dendro-pi-main/dendro_logger/DD_backup
+DROPBOX_UPLOADER=~/dendro-pi-main/Dropbox-Uploader/dropbox_uploader.sh
 
 # Ensure backup directory exists
 mkdir -p "$BACKUP_DIR"
