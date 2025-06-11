@@ -105,43 +105,62 @@ function update_cron() {
     echo "Cron jobs updated. Upload will run at $upload_hour:00 each day."
 }
 
-
 function update_tree_mapping() {
     echo "Setting up dendrometer sensor configuration..."
 
-    TREE_IDS=()
-    MICRON_SCALES=()
+    # Load saved config
+    if [ -f dendro_config.env ]; then
+        source dendro_config.env
+    fi
 
     for i in {0..3}; do
-        prev_id_var="TREE_ID_$i"
-        prev_scale_var="MICRON_SCALE_$i"
+        prev_tree_id="${TREE_IDS[$i]}"
+        prev_scale="${MICRON_SCALES[$i]}"
 
-        prev_tree_id="${!prev_id_var}"
-        prev_scale="${!prev_scale_var}"
-
-        # Prompt for Tree ID
         read -p "Channel $i - Enter Tree ID [Current: ${prev_tree_id:-not set}]: " input
-        TREE_IDS+=("${input:-$prev_tree_id}")
+        TREE_IDS[$i]="${input:-$prev_tree_id}"
 
-        # Prompt for dendrometer type
-        read -p "Channel $i - Enter dendrometer type (DC2 or DC3) [Current: ${prev_scale:-not set}]: " dtype
+        if [[ "$prev_scale" == "15000" ]]; then
+            prev_scale_str="DC2"
+        elif [[ "$prev_scale" == "25400" ]]; then
+            prev_scale_str="DC3"
+        else
+            prev_scale_str="not set"
+        fi
+
+        read -p "Channel $i - Enter dendrometer type (DC2 or DC3) [Current: ${prev_scale_str}]: " dtype
         dtype=$(echo "$dtype" | tr '[:lower:]' '[:upper:]')
         case "$dtype" in
-            "" ) MICRON_SCALES+=("$prev_scale") ;;
-            "2"|"DC2") MICRON_SCALES+=(15000) ;;
-            "3"|"DC3") MICRON_SCALES+=(25400) ;;
-            * ) echo "Unrecognized type '$dtype'. Using previous/default scale."; MICRON_SCALES+=("$prev_scale") ;;
+            "" ) MICRON_SCALES[$i]="$prev_scale" ;;
+            "2"|"DC2") MICRON_SCALES[$i]=15000 ;;
+            "3"|"DC3") MICRON_SCALES[$i]=25400 ;;
+            * ) echo "Unrecognized type '$dtype'. Using previous/default scale."; MICRON_SCALES[$i]="$prev_scale" ;;
         esac
+
+        if [[ "${MICRON_SCALES[$i]}" == "15000" ]]; then
+            dtype_str="DC2"
+        elif [[ "${MICRON_SCALES[$i]}" == "25400" ]]; then
+            dtype_str="DC3"
+        else
+            dtype_str="Unknown"
+        fi
+
+        echo "  Channel $i: Tree ID = ${TREE_IDS[$i]}, Dendrometer type = $dtype_str"
     done
 
-    # Join arrays into space-separated strings
-    id_str="${TREE_IDS[*]}"
-    scale_str="${MICRON_SCALES[*]}"
+    # Save to file
+    {
+        echo "DROPBOX_FOLDER=$DROPBOX_FOLDER"
+        echo "UPLOAD_HOUR=$UPLOAD_HOUR"
+        echo -n "TREE_IDS=("
+        printf "%s " "${TREE_IDS[@]}"
+        echo ")"
+        echo -n "MICRON_SCALES=("
+        printf "%s " "${MICRON_SCALES[@]}"
+        echo ")"
+    } > dendro_config.env
 
-    update_config "TREE_IDS" "(${id_str})"
-    update_config "MICRON_SCALES" "(${scale_str})"
-
-    echo "Tree mapping updated and saved to $CONFIG_FILE."
+    echo "Tree mapping updated and saved to dendro_config.env."
 }
 
 
