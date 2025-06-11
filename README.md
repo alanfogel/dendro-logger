@@ -17,8 +17,8 @@ The default behaviour of this system is to read the data off of 4 dendrometers e
 Use the included setup.sh script to handle installation and configuration:
 ```bash
 cd ~/dendro-pi-main  # Must already exist
-git clone https://github.com/alanfogel/dendro_logger.git
-cd dendro_logger
+git clone https://github.com/alanfogel/dendro-logger.git
+cd dendro-logger
 chmod +x setup.sh
 ./setup.sh
 ```

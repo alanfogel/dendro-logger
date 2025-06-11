@@ -11,21 +11,21 @@ fi
 
 function main_menu() {
     echo ""
-    echo "🛠️ What would you like to do?"
+    echo "What would you like to do?"
     select option in \
-        "1) Full setup (first-time install)" \
-        "2) Update Dropbox folder name" \
-        "3) Update upload time (staggered cron)" \
-        "4) Update dendrometer types & tree IDs" \
-        "5) Exit"
+        "Full setup (first-time install)" \
+        "Update Dropbox folder name" \
+        "Update upload time (staggered cron)" \
+        "Update dendrometer types & tree IDs" \
+        "Exit"
     do
         case $REPLY in
             1) full_setup; break ;;
             2) update_dropbox; break ;;
             3) update_cron; break ;;
             4) update_tree_mapping; break ;;
-            5) echo "❌ Exiting."; exit 0 ;;
-            *) echo "❗ Invalid choice, please enter 1–5." ;;
+            5) echo "Exiting."; exit 0 ;;
+            *) echo "Invalid choice, please enter 1–5." ;;
         esac
     done
 }
@@ -35,12 +35,16 @@ function full_setup() {
     sudo apt update
     sudo apt install -y python3-pip libopenblas-dev
 
-    echo "Creating virtual environment..."
+    echo "Creating virtual environment... (This may take a while)"
     python3 -m venv venv
     source venv/bin/activate
 
-    echo "Installing Python packages..."
-    pip install adafruit-circuitpython-busdevice adafruit-circuitpython-ads1x15 numpy RPi.GPIO
+    echo "Installing Python packages... (This may take a while)"
+    python -m pip install --upgrade pip
+    sudo apt install libopenblas0-pthread libgfortran5
+    pip install adafruit-circuitpython-busdevice adafruit-circuitpython-ads1x15 
+    pip install --verbose numpy==2.2.4 # Using the latest piwheel version to speedup installation
+    pip install RPi.GPIO
 
     echo "Enabling I2C interface..."
     sudo raspi-config nonint do_i2c 0
@@ -68,8 +72,10 @@ function update_cron() {
     sed -i "/dendro_logging.py/d" "$current_cron"
     sed -i "/upload-to-dropbox_DENDRO.sh/d" "$current_cron"
 
+    echo "# Reads data from dendrometers every 5 minutes" >> "$current_cron"
     echo "*/5 * * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/dendro_logging.py" >> "$current_cron"
-    echo "$upload_hour 2 * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/upload-to-dropbox_DENDRO.sh" >> "$current_cron"
+    echo "# Uploads data to Dropbox at $upload_hour:00" >> "$current_cron"
+    echo "0 $upload_hour * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/upload-to-dropbox_DENDRO.sh" >> "$current_cron"
 
     crontab "$current_cron"
     rm "$current_cron"
@@ -79,7 +85,7 @@ function update_cron() {
 }
 
 function update_tree_mapping() {
-    echo "📋 Setting up dendrometer sensor configuration..."
+    echo "Setting up dendrometer sensor configuration..."
 
     declare -A TREE_ID_MAP
     declare -A MICRON_SCALE
