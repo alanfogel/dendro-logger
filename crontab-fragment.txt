@@ -1,5 +1,0 @@
-# Sample each channel every 5 minutes
-*/5 * * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/dendro_logging.py
-
-# Upload dendrometer data to Dropbox every day at 2am
-0 2 * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/upload-to-dropbox_DENDRO.sh

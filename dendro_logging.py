@@ -9,26 +9,30 @@ import busio
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
+# Load config from .env file
+def load_env_config(path):
+    config = {}
+    with open(path, 'r') as f:
+        for line in f:
+            if '=' in line and not line.startswith('#'):
+                k, v = line.strip().split('=', 1)
+                config[k] = v
+    return config
+
+config = load_env_config(os.path.expanduser('~/dendro-pi-main/dendro-logger/dendro_config.env'))
+
+# Extract tree IDs and micron scales from the config
+tree_ids = config.get('TREE_IDS', '').strip('()').split()
+micron_scales = config.get('MICRON_SCALES', '').strip('()').split()
+
+# Save the tree IDs and micron scales as integers
+TREE_ID_MAP = {i: tree_ids[i] for i in range(4)}
+MICRON_SCALE = {i: int(micron_scales[i]) for i in range(4)}
+
 # Initialize I2C communication
 i2c = busio.I2C(board.SCL, board.SDA)
 ads = ADS.ADS1115(i2c)
 ads.gain = 1  # ±4.096V range, for 3.3V signals
-
-# Sensor type per channel: DC2 = 15,000 μm, DC3 = 25,400 μm
-MICRON_SCALE = {
-    0: 25400,
-    1: 15000,
-    2: 15000,
-    3: 25400,
-}
-
-# Map software channel numbers (0-3) to tree IDs
-TREE_ID_MAP = {
-    0: "001",
-    1: "002",
-    2: "003",
-    3: "004",
-}
 
 # Initialize all 4 ADC channels
 channels = {

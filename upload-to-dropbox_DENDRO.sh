@@ -1,22 +1,21 @@
 #!/bin/bash
 
-# --- Upload dendrometer data ---
-# Directories
+# Load config
+source "$HOME/dendro-pi-main/dendro-logger/dendro_config.env"
+DROPBOX_FOLDER="${DROPBOX_FOLDER:-DD_Default}"
+DROPBOX_UPLOADER="$HOME/dendro-pi-main/Dropbox-Uploader/dropbox_uploader.sh"
 LOG_DIR="$HOME/dendro-pi-main/dendro-logger/data"
 BACKUP_DIR="$LOG_DIR/DD_backup"
-DROPBOX_UPLOADER="$HOME/dendro-pi-main/Dropbox-Uploader/dropbox_uploader.sh"
-
-# Ensure backup directory exists
-mkdir -p "$BACKUP_DIR"
 
 # Get today's date in YYYY-MM-DD format
 TODAY=$(date +"%Y-%m-%d")
 
+# Ensure backup directory exists
+mkdir -p "$BACKUP_DIR"
+
+# --- Upload dendrometer data ---
 # Change to the directory where data files are stored
-cd "$LOG_DIR" || {
-    echo "Failed to cd into $LOG_DIR"
-    exit 1
-}
+cd "$LOG_DIR" || exit 1
 
 # Loop through all channel files EXCEPT today's file
 for file in ???_ch[1-4]_*.txt; do # Channel files named like 001_ch1_2023-10-01.txt
@@ -27,17 +26,16 @@ for file in ???_ch[1-4]_*.txt; do # Channel files named like 001_ch1_2023-10-01.
 
         # Skip today's file (still being written to)
         if [[ "$FILE_DATE" == "$TODAY" ]]; then
-            echo "Skipped $file : Because it is currently $TODAY and may still be written to"
+            echo "Skipped $file: it is today's file ($TODAY), may still be written to"
             continue
         fi
 
-        # Attempt to upload $file /DD_Dorval-2/"
-        if "$DROPBOX_UPLOADER" upload "$file" "/DD_Dorval-2/"; then
-            echo "Upload succeeded: $file"
-            # If upload $file /DD_Dorval-2/"
+        # Attempt to upload $file
+        if "$DROPBOX_UPLOADER" upload "$file" "/$DROPBOX_FOLDER/"; then
+            echo "Uploaded: $file"
+            # If upload $file /$DROPBOX_FOLDER/ was successful, move it to the backup directory
             mv "$file" "$BACKUP_DIR/"
         else
-            # If upload $file /DD_Dorval-2/"
             echo "Upload failed for $file"
         fi
     fi

@@ -59,123 +59,91 @@ function full_setup() {
 function update_dropbox() {
     read -p "Enter Dropbox folder name (e.g., DD_Dorval-2) [Current: ${DROPBOX_FOLDER:-not set}]: " input
     DROPBOX_FOLDER="${input:-$DROPBOX_FOLDER}"
-
-    sed -i "s|upload \$file /.*|upload \$file /${DROPBOX_FOLDER}/\"|" upload-to-dropbox_DENDRO.sh
-
     update_config "DROPBOX_FOLDER" "$DROPBOX_FOLDER"
     echo "Dropbox folder updated to /$DROPBOX_FOLDER"
 }
 
 function update_cron() {
+    CONFIG_FILE="$SCRIPT_DIR/dendro_config.env"
+    source "$CONFIG_FILE"
+
     read -p "Enter upload hour (0–23) [Current: ${UPLOAD_HOUR:-not set}]: " input
     upload_hour="${input:-$UPLOAD_HOUR}"
 
-    # Backup and filter crontab
+    # Fallback to 2 AM if nothing was set previously
+    if [[ -z "$upload_hour" ]]; then
+        upload_hour=2
+    fi
+
+    # Backup current crontab
     current_cron=$(mktemp)
     crontab -l > "$current_cron" 2>/dev/null || true
 
-    # Remove previous logging & upload blocks with comment lines
+    # Remove any old dendro_logger-related entries + their comment lines
     awk '
     BEGIN { skip = 0 }
-    /# Reads .*dendrometer/ || /# Uploads data to Dropbox/ { skip = 1; next }
-    /^[^#].*dendro_logging\.py/ || /upload-to-dropbox_DENDRO\.sh/ { if (skip) { skip = 0; next } }
+    /# Reads data from dendrometers/ || /# Uploads data to Dropbox/ { skip = 1; next }
+    /^[^#].*dendro_logging\.py/ || /upload-to-dropbox_DENDRO\.sh/ {
+        if (skip) { skip = 0; next }
+    }
     { print }
     ' "$current_cron" > "${current_cron}.tmp" && mv "${current_cron}.tmp" "$current_cron"
 
-    # Append new jobs
+    # Append new cron jobs
     echo "# Reads data from dendrometers every 5 minutes" >> "$current_cron"
     echo "*/5 * * * * $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/dendro_logging.py" >> "$current_cron"
     echo "# Uploads data to Dropbox at $upload_hour:00" >> "$current_cron"
     echo "0 $upload_hour * * * bash $SCRIPT_DIR/upload-to-dropbox_DENDRO.sh" >> "$current_cron"
 
-    # Install updated crontab
+    # Install new crontab and cleanup
     crontab "$current_cron"
     rm "$current_cron"
 
+    # Save updated value to config
     update_config "UPLOAD_HOUR" "$upload_hour"
-    echo " Cron jobs updated. Upload will run at $upload_hour:00 each day."
+
+    echo "Cron jobs updated. Upload will run at $upload_hour:00 each day."
 }
+
 
 function update_tree_mapping() {
     echo "Setting up dendrometer sensor configuration..."
 
-    declare -A TREE_ID_MAP
-    declare -A MICRON_SCALE
+    TREE_IDS=()
+    MICRON_SCALES=()
 
     for i in {0..3}; do
-        prev_tree_id_var="TREE_ID_$i"
+        prev_id_var="TREE_ID_$i"
         prev_scale_var="MICRON_SCALE_$i"
 
-        prev_tree_id="${!prev_tree_id_var}"
+        prev_tree_id="${!prev_id_var}"
         prev_scale="${!prev_scale_var}"
 
-        # Convert scale to label
-        if [[ "$prev_scale" == "15000" ]]; then
-            prev_scale_label="DC2"
-        elif [[ "$prev_scale" == "25400" ]]; then
-            prev_scale_label="DC3"
-        else
-            prev_scale_label="unknown"
-        fi
-
-        # Prompt for tree ID
+        # Prompt for Tree ID
         read -p "Channel $i - Enter Tree ID [Current: ${prev_tree_id:-not set}]: " input
-        TREE_ID_MAP[$i]="${input:-$prev_tree_id}"
-        update_config "$prev_tree_id_var" "${TREE_ID_MAP[$i]}"
+        TREE_IDS+=("${input:-$prev_tree_id}")
 
         # Prompt for dendrometer type
-        read -p "Channel $i - Enter dendrometer type (DC2 or DC3, or just 2 or 3) [Current: ${prev_scale_label}]: " dtype
-        dtype=$(echo "$dtype" | tr '[:lower:]' '[:upper:]')  # normalize to uppercase
-
-        if [[ -z "$dtype" ]]; then
-            MICRON_SCALE[$i]="${prev_scale}"
-        elif [[ "$dtype" == "2" || "$dtype" == "DC2" ]]; then
-            MICRON_SCALE[$i]=15000
-        elif [[ "$dtype" == "3" || "$dtype" == "DC3" ]]; then
-            MICRON_SCALE[$i]=25400
-        else
-            echo "Unrecognized type '$dtype'. Using previous/default scale: ${prev_scale}"
-            MICRON_SCALE[$i]="${prev_scale}"
-        fi
-        update_config "$prev_scale_var" "${MICRON_SCALE[$i]}"
-
-        # Final confirmation
-        final_label=$( [[ ${MICRON_SCALE[$i]} == 15000 ]] && echo DC2 || echo DC3 )
-        echo "Updated: Tree ${TREE_ID_MAP[$i]} with $final_label"
+        read -p "Channel $i - Enter dendrometer type (DC2 or DC3) [Current: ${prev_scale:-not set}]: " dtype
+        dtype=$(echo "$dtype" | tr '[:lower:]' '[:upper:]')
+        case "$dtype" in
+            "" ) MICRON_SCALES+=("$prev_scale") ;;
+            "2"|"DC2") MICRON_SCALES+=(15000) ;;
+            "3"|"DC3") MICRON_SCALES+=(25400) ;;
+            * ) echo "Unrecognized type '$dtype'. Using previous/default scale."; MICRON_SCALES+=("$prev_scale") ;;
+        esac
     done
 
+    # Join arrays into space-separated strings
+    id_str="${TREE_IDS[*]}"
+    scale_str="${MICRON_SCALES[*]}"
 
-    # Build the code blocks as strings
-    scale_block="MICRON_SCALE = {\n"
-    id_block="TREE_ID_MAP = {\n"
-    for i in {0..3}; do
-        scale_block+="    $i: ${MICRON_SCALE[$i]},\n"
-        id_block+="    $i: \"${TREE_ID_MAP[$i]}\",\n"
-    done
-    scale_block+="}"
-    id_block+="}"
+    update_config "TREE_IDS" "(${id_str})"
+    update_config "MICRON_SCALES" "(${scale_str})"
 
-    today=$(date +"%B %d, %Y")
-
-    # Replace placeholders using literal newlines (with awk)
-    awk -v date="$today" \
-        -v scale_block="$scale_block" \
-        -v id_block="$id_block" '
-    {
-        gsub(/\{\{DATE\}\}/, date)
-        if ($0 ~ /\{\{MICRON_SCALE\}\}/) {
-            print scale_block
-            next
-        }
-        if ($0 ~ /\{\{TREE_ID_MAP\}\}/) {
-            print id_block
-            next
-        }
-        print
-    }' dendro_logging_template.py > dendro_logging.py
-
-    echo "dendro_logging.py generated from template."
+    echo "Tree mapping updated and saved to $CONFIG_FILE."
 }
+
 
 update_config() {
     local key="$1"
