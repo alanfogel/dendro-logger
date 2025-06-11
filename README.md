@@ -144,7 +144,7 @@ Add the following lines to the end of the file:
 */5 * * * * /home/madlab/venv/bin/python3 /home/madlab/dendro-pi-main/dendro-logger/dendro_logging.py 
 
 # Upload dendrometer data to Dropbox every day at 2am
-0 2 * * * /home/madlab/venv/bin/python3 /home/madlab/dendro-pi-main/dendro-logger/upload-to-dropbox_DENDRO.sh
+0 2 * * * bash /home/madlab/dendro-pi-main/dendro-logger/upload-to-dropbox_DENDRO.sh
 ````
 
 
