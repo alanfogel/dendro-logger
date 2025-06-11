@@ -65,7 +65,7 @@ def read_and_log(samples=10, delay=0.1):
         hardware_ch = chan_num + 1
         tree_id = TREE_ID_MAP.get(chan_num, f"ch{hardware_ch}") # fallback to channel if no tree ID
 
-        file_path = f"/home/madlab/dendro_logger/{tree_id}_ch{hardware_ch}_{datestamp}.txt"
+        file_path = f"/home/madlab/dendro-pi-main/dendro_logger/{tree_id}_ch{hardware_ch}_{datestamp}.txt"
         with open(file_path, "a") as f:
             f.write(f"{timestamp}, {microns:.2f}\n")
         print(f"Tree {tree_id} Ch{hardware_ch}: {microns:.2f} µm, {avg_voltage:.4f} V (avg of {len(readings)} samples)")
