@@ -84,6 +84,13 @@ The full setup will take a while, you may need to awnser "y" when promted.
 
 ---
 ## 🧪 Verify Setup
+### One line to read live values back from dendrometers at 1s intervals (Does not save to file)
+- Good for testing if the dendrometers are connected and working properly.
+```bash
+/home/madlab/dendro-pi-main/dendro-logger/venv/bin/python3 /home/madlab/dendro-pi-main/dendro-logger/dendro_test.py
+```
+
+### Regular full setup verification to test reading, saving, and uploading
 1. Run `source venv/bin/activate` to activate Python environment
 2. Run `python3 dendro_logging.py` manually and check for output in `data/`
 3. Run `bash upload-to-dropbox_DENDRO.sh` to confirm Dropbox sync
