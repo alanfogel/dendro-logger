@@ -42,7 +42,7 @@ for file in ???_ch[1-4]_*.txt; do # Channel files named like 001_ch1_2023-10-01.
 done
 
 # --- Upload dendrometer data .csv ---
-for file in ???_*.csv; do # Channel files named like DD_Dorval-2_2023-10-01.csv
+for file in *.csv; do # Channel files named like DD_Dorval-2_2023-10-01.csv
     if [[ -f "$file" ]]; then
         # Extract the date from the filename
         FILE_DATE=$(echo "$file" | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}")
