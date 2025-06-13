@@ -2,8 +2,8 @@
 This project sets up a Raspberry Pi to performs the following:
 - Reads millivolt values from 4 dendrometer channels using the ADS1115 ADC
 - Converts raw values into microns based on dendrometer type (DC2 = 15μm/mV, DC3 = 25.4μm/mV)
-- Saves a timestamped `.csv` log file with daily measurements
-- Uploads the `.csv` files nightly to Dropbox using Dropbox-Uploader
+- Saves a timestamped `.txt` and/or `.csv` log file with daily measurements
+- Uploads the files nightly to Dropbox using Dropbox-Uploader
 - Allows easy configuration of:
   - Tree IDs and dendrometer types
   - Upload time (staggered across devices)
