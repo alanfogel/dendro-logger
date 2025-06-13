@@ -60,6 +60,7 @@ def live_monitor(samples=10, delay=0.1, refresh_interval=1.0):
 
                 avg_voltage = sum(readings) / len(readings)
                 microns = avg_voltage / 3.3 * MICRON_SCALE[chan_num]
+                microns = max(0.0, microns)  # Prevent negative values
                 hardware_ch = chan_num + 1
                 tree_id = TREE_ID_MAP.get(chan_num, f"ch{hardware_ch}")
 
