@@ -82,6 +82,18 @@ First you will be prompted to select what you want to do:
 
 The full setup will take a while, you may need to awnser "y" when promted.
 
+If you prefer your data to be saved as a `.csv` file instead of a `.txt` file, you can change the cron job to run the `dendro_logging_csv.py` script instead of `dendro_logging.py` by editing the cron job file:
+```bash
+crontab -e
+```
+Then change the line:
+```bash
+*/5 * * * * /home/madlab/dendro-pi-main/dendro-logger/venv/bin/python3 /home/madlab/dendro-pi-main/dendro-logger/dendro_logging.py 
+```
+to:
+```bash
+*/5 * * * * /home/madlab/dendro-pi-main/dendro-logger/venv/bin/python3 /home/madlab/dendro-pi-main/dendro-logger/dendro_logging_csv.py
+```
 ---
 ## 🧪 Verify Setup
 ### One line to read live values back from dendrometers at 1s intervals (Does not save to file)
